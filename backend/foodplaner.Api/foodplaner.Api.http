@@ -1,0 +1,6 @@
+@foodplaner.Api_HostAddress = http://localhost:5136
+
+GET {{foodplaner.Api_HostAddress}}/foodplaner/
+Accept: application/json
+
+###
