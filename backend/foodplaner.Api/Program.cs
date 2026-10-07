@@ -37,6 +37,10 @@ app.MapGet("/api/recipes/{id}", async (int id, AppDbContext db) =>
 
 app.MapPost("/api/recipes", async (Recipe recipe, AppDbContext db) =>
 {
+    if (!recipe.IsValid())
+    {
+        return Results.BadRequest("Invalid Input.");
+    }
     db.Recipes.Add(recipe);
     await db.SaveChangesAsync();
     return Results.Created($"/api/recipes/{recipe.Id}", recipe);
@@ -61,6 +65,10 @@ app.MapPut("/api/recipes/{id}", async (int id, Recipe recipe, AppDbContext db) =
     Recipe? recipeToChange = await db.Recipes.FindAsync(id);
     if(recipeToChange != null)
     {
+        if (!recipe.IsValid())
+        {
+            return Results.BadRequest("Invalid Input.");
+        }
         recipeToChange.Name = recipe.Name;
         recipeToChange.Instructions = recipe.Instructions;
         recipeToChange.Portions = recipe.Portions;
