@@ -22,6 +22,56 @@ app.MapGet("/api/recipes", async (AppDbContext db) =>
     return await db.Recipes.ToListAsync();
 });
 
+app.MapGet("/api/recipes/{id}", async (int id, AppDbContext db) =>
+{
+    Recipe? recipe = await db.Recipes.FindAsync(id);
+    if(recipe != null)
+    {
+        return Results.Ok(recipe);
+    } else
+    {
+        return Results.NotFound();
+    }
+});
+
+
+app.MapPost("/api/recipes", async (Recipe recipe, AppDbContext db) =>
+{
+    db.Recipes.Add(recipe);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/recipes/{recipe.Id}", recipe);
+});
+
+app.MapDelete("/api/recipes/{id}", async (int id, AppDbContext db) =>
+{
+    Recipe? recipeToDelete = await db.Recipes.FindAsync(id);
+    if(recipeToDelete != null)
+    {
+        db.Recipes.Remove(recipeToDelete);
+        await db.SaveChangesAsync();
+        return Results.NoContent();
+    } else
+    {
+        return Results.NotFound();
+    }
+});
+
+app.MapPut("/api/recipes/{id}", async (int id, Recipe recipe, AppDbContext db) =>
+{
+    Recipe? recipeToChange = await db.Recipes.FindAsync(id);
+    if(recipeToChange != null)
+    {
+        recipeToChange.Name = recipe.Name;
+        recipeToChange.Instructions = recipe.Instructions;
+        recipeToChange.Portions = recipe.Portions;
+        await db.SaveChangesAsync();
+        return Results.Ok(recipeToChange);
+    } else
+    {
+        return Results.NotFound();
+    }
+});
+
 app.Run();
 
 
