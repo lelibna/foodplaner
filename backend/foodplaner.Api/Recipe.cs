@@ -5,6 +5,8 @@ public class Recipe
     public int Portions {get; set;}
     public string? Instructions {get; set;}
 
+    public List<RecipeIngredient> RecipeIngredients {get; set;} = new();
+
     public bool IsValid()
     {
         if (string.IsNullOrWhiteSpace(Name))
