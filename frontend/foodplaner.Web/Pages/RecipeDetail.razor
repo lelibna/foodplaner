@@ -1,0 +1,46 @@
+@page "/recipes/{Id:int}"
+
+@inject HttpClient Http
+
+@if (recipe == null)
+{
+    <MudProgressCircular Indeterminate="true"/>    
+}
+else
+{
+    <MudText Typo="Typo.h4">@recipe.Name</MudText>
+    <MudText>Portionen: @recipe.Portions</MudText>
+
+    @if (!string.IsNullOrWhiteSpace(recipe.Instructions))
+    {
+        <MudText Typo="Typo.h6" Class="mt-4">Zubereitung</MudText>
+        <MudText>@recipe.Instructions</MudText>
+    }
+
+    <MudText Typo="Typo.h6" Class="mt-4">Zutaten</MudText>
+    <MudSimpleTable>
+        <thead>
+            <tr><th>Zutat</th><th>Menge</th><th>Einheit</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var ingredient in recipe.Ingredients)
+            {
+                <tr>
+                    <td>@ingredient.Name</td>
+                    <td>@ingredient.Amount</td>
+                    <td>@ingredient.Unit</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter]
+    public int Id {get; set;}
+    private RecipeDetailTransfer? recipe;
+    protected override async Task OnInitializedAsync()
+    {
+        recipe = await Http.GetFromJsonAsync<RecipeDetailTransfer>($"api/recipes/{Id}");
+    }
+}

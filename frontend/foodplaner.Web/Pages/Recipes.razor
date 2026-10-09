@@ -4,18 +4,18 @@
 
 @if (recipes == null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressCircular Indeterminate="true"/>
 }
 else
 {
     <MudSimpleTable>
         <thead>
-            <tr><th>Test</th><th>Test2</th></tr>
+            <tr><th>Recipe</th></tr>
         </thead>
         <tbody>
             @foreach (var recipe in recipes)
             {
-                <tr><td>@recipe.Name</td><td>@recipe.Portions</td></tr>
+                <tr><td><MudLink Href="@($"recipes/{recipe.Id}")">@recipe.Name</MudLink></td></tr>
             }
         </tbody>
     </MudSimpleTable>
