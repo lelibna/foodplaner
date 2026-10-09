@@ -1,0 +1,1 @@
+public record Recipe(int Id, string Name, int Portions, String? Instructions);

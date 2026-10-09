@@ -1,0 +1,32 @@
+@page "/recipes"
+
+@inject HttpClient Http
+
+@if (recipes == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudSimpleTable>
+        <thead>
+            <tr><th>Test</th><th>Test2</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var recipe in recipes)
+            {
+                <tr><td>@recipe.Name</td><td>@recipe.Portions</td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<Recipe>? recipes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        recipes = await Http.GetFromJsonAsync<List<Recipe>>("api/recipes");
+    }
+    
+}

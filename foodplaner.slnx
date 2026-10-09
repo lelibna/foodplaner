@@ -2,4 +2,7 @@
   <Folder Name="/backend/">
     <Project Path="backend/foodplaner.Api/foodplaner.Api.csproj" />
   </Folder>
+  <Folder Name="/frontend/">
+    <Project Path="frontend/foodplaner.Web/foodplaner.Web.csproj" />
+  </Folder>
 </Solution>
