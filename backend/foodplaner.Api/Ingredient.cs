@@ -18,10 +18,3 @@ public class Ingredient
         return true;
     }
 }
-
-public enum Unit
-{
-    Piece,
-    Gram,
-    Milliliter,
-}

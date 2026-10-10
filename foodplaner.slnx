@@ -5,4 +5,7 @@
   <Folder Name="/frontend/">
     <Project Path="frontend/foodplaner.Web/foodplaner.Web.csproj" />
   </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/foodplaner.Shared/foodplaner.Shared.csproj" />
+  </Folder>
 </Solution>

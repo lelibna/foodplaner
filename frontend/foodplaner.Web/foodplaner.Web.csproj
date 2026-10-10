@@ -13,4 +13,8 @@
     <PackageReference Include="MudBlazor" Version="9.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\foodplaner.Shared\foodplaner.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

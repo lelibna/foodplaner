@@ -1,1 +1,0 @@
-public record RecipeIngredientTransfer(int IngredientId, string Name, decimal Amount, string Unit);

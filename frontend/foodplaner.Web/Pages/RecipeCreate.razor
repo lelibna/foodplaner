@@ -1,0 +1,129 @@
+@page "/recipes/new"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" Class="mb-4">New Recipe</MudText>
+
+<MudStack Spacing="3">
+    <MudTextField @bind-Value="name" Label="Name" />
+    <MudNumericField @bind-Value="portions" Label="Portions" Min="1" Max="10" />
+    <MudTextField @bind-Value="instructions" Label="Instructions" Lines="5" />
+
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudAutocomplete T="string"
+                        Label="Search Ingredient"
+                        @bind-Value="selectedIngredient"
+                        SearchFunc="SearchIngredient"
+                        CoerceValue="true" />
+        <MudButton Variant="Variant.Outlined" OnClick="AddIngredient">Add</MudButton>
+    </MudStack>
+@if (rowingredients.Count > 0)
+{   
+    <MudSimpleTable>
+        <thead>
+            <tr><th>Ingredient</th><th>Amount</th><th>Unit</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var ingredient in rowingredients)
+            {
+                <tr>
+                    <td>@ingredient.Name</td>
+                    <td><MudNumericField T="decimal" @bind-Value="ingredient.Amount" Min="0"/></td>
+                    <td>
+                        <MudSelect T="Unit?" @bind-Value="ingredient.Unit" Disabled="!ingredient.IsNew" Placeholder="Choose Unit">
+                            @foreach (var unit in Enum.GetValues<Unit>())
+                            {
+                                <MudSelectItem T="Unit?" Value ="@unit">@unit</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </td>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => rowingredients.Remove(ingredient)" />  
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+} else {
+    <MudText Typo="Typo.body2">No ingredients.</MudText>    
+}
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save Recipe</MudButton>
+</MudStack>
+
+@code {
+    private string name = "";
+    private int portions = 2;
+    private string? instructions;
+    private List<Ingredient>? ingredients;
+    private List<RecipeIngredientRow> rowingredients = new();
+    private string? selectedIngredient;
+    protected override async Task OnInitializedAsync()
+    {
+        ingredients = await Http.GetFromJsonAsync<List<Ingredient>>("api/ingredients");
+    }
+
+    private Task<IEnumerable<string>> SearchIngredient(string text, CancellationToken token)
+    {
+        if(ingredients == null)
+        {
+            return Task.FromResult<IEnumerable<string>>([]);
+        }
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Task.FromResult(ingredients.Select(i => i.Name));
+        }
+        var matches = ingredients
+            .Where(i => i.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(i => i.Name);
+        return Task.FromResult(matches);
+    }
+
+    private void AddIngredient()
+    {
+        if(string.IsNullOrWhiteSpace(selectedIngredient))
+        {
+            return;
+        }
+        var name = selectedIngredient.Trim();
+
+        if(rowingredients.Any(r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            Snackbar.Add("This ingredient is already in the list.", Severity.Info);
+            selectedIngredient = null;
+            return;
+        }
+        var existing = ingredients?.FirstOrDefault(i => i.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        if(existing != null)
+        {
+            rowingredients.Add(new RecipeIngredientRow { Name = existing.Name, Unit = existing.IngredientUnit, IsNew = false});
+        } else
+        {
+            rowingredients.Add(new RecipeIngredientRow { Name = name, IsNew = true });
+        }
+        selectedIngredient = null;
+    }
+
+    private async Task Save()
+    {
+        List<CreateRecipeIngredientRequest> requestIngredients = new();
+        foreach (var row in rowingredients)
+        {
+            requestIngredients.Add(new CreateRecipeIngredientRequest(
+                row.Name,
+                row.Amount,
+                row.IsNew ? row.Unit : null
+            ));
+        }
+        var request = new CreateRecipeRequest(name, portions, instructions, requestIngredients);
+        var response = await Http.PostAsJsonAsync("api/recipes", request);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("recipes");
+        } else
+        {
+            Snackbar.Add("Recipe couldn't be saved.", Severity.Error);
+        }
+    }
+}

@@ -13,14 +13,14 @@ else
 
     @if (!string.IsNullOrWhiteSpace(recipe.Instructions))
     {
-        <MudText Typo="Typo.h6" Class="mt-4">Zubereitung</MudText>
+        <MudText Typo="Typo.h6" Class="mt-4">Instructions</MudText>
         <MudText>@recipe.Instructions</MudText>
     }
 
-    <MudText Typo="Typo.h6" Class="mt-4">Zutaten</MudText>
+    <MudText Typo="Typo.h6" Class="mt-4">Ingredients</MudText>
     <MudSimpleTable>
         <thead>
-            <tr><th>Zutat</th><th>Menge</th><th>Einheit</th></tr>
+            <tr><th>Ingredient</th><th>Amount</th><th>Unit</th></tr>
         </thead>
         <tbody>
             @foreach (var ingredient in recipe.Ingredients)

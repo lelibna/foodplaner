@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 [ApiController]
 [Route("api/recipes")]
@@ -37,15 +38,59 @@ public class RecipesController(AppDbContext db) : ControllerBase
         return Ok(recipetransfer);
     }
     [HttpPost]
-    public async Task<IActionResult> AddRecipe(Recipe recipe)
+    public async Task<IActionResult> AddRecipe(CreateRecipeRequest request)
     {
+        Recipe recipe = new Recipe
+        {
+            Name = request.Name,
+            Portions = request.Portions,
+            Instructions = request.Instructions
+        };
         if (!recipe.IsValid())
         {
             return BadRequest("Invalid Input.");
         }
+        var ingredients = request.ingredients ?? [];
+
+        //Check request
+
+        foreach (var item in ingredients)
+        {
+            if(string.IsNullOrWhiteSpace(item.Name) || item.Amount <= 0)
+            {
+                return BadRequest("Invalid Input.");
+            }
+        }
+
+        var names = ingredients.Select(i => i.Name.Trim().ToLower()).ToList();
+        if(names.Count != names.Distinct().Count())
+        {
+            return BadRequest("Ingredient appears multiple times.");
+        }
+
+        //Check Request in DB
+        foreach(var item in ingredients)
+        {
+            var name = item.Name.Trim();
+            var ingredient = await db.Ingredients
+                .FirstOrDefaultAsync(i => i.Name.ToLower() == name.ToLower());
+            if(ingredient == null)
+            {
+                if(item.unit == null)
+                {
+                    return BadRequest("The unit is missing.");
+                }
+                ingredient = new Ingredient {Name = name, IngredientUnit = item.unit.Value };
+            }
+            recipe.RecipeIngredients.Add(new RecipeIngredient
+            {
+                Ingredient = ingredient,
+                Amount = item.Amount
+            });
+        }
         db.Recipes.Add(recipe);
         await db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetRecipeById), new { id = recipe.Id }, recipe);
+        return CreatedAtAction(nameof(GetRecipeById), new { id = recipe.Id }, new {recipe.Id});
     }
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRecipe(int id)
