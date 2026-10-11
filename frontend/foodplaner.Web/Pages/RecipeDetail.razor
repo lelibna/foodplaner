@@ -1,6 +1,9 @@
 @page "/recipes/{Id:int}"
 
 @inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 @if (recipe == null)
 {
@@ -33,6 +36,19 @@ else
             }
         </tbody>
     </MudSimpleTable>
+    <MudButton Variant="Variant.Outlined"
+        Color="Color.Error"
+        StartIcon="@Icons.Material.Filled.Delete"
+        Class="mt-4"
+        OnClick="DeleteRecipe"> Delete
+    </MudButton>
+
+    <MudButton Variant="Variant.Outlined"
+        Color="Color.Primary"
+        StartIcon="@Icons.Material.Filled.Edit"
+        Class="mt-4 ml-2"
+        Href="@($"recipes/{recipe.Id}/edit")"> Edit
+    </MudButton>
 }
 
 @code {
@@ -42,5 +58,23 @@ else
     protected override async Task OnInitializedAsync()
     {
         recipe = await Http.GetFromJsonAsync<RecipeDetailTransfer>($"api/recipes/{Id}");
+    }
+
+    private async Task DeleteRecipe()
+    {
+        bool? delete = await DialogService.ShowMessageBoxAsync("Delete this recipe?", $"\"{recipe?.Name}\" will be deleted.", "Delete", null, "Cancel");
+        if (delete != true)
+        {
+            return;
+        }
+        var response = await Http.DeleteAsync($"api/recipes/{Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Recipe deleted.", Severity.Success);
+            Navigation.NavigateTo("recipes");
+        } else
+        {
+            Snackbar.Add("Recipe couldn't be deleted.", Severity.Error);
+        }
     }
 }

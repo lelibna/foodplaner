@@ -1,9 +1,10 @@
 @page "/recipes/new"
+@page "/recipes/{Id:int}/edit"
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h4" Class="mb-4">New Recipe</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">@(Id == null ? "New Recipe" : "Edit Recipe")</MudText>
 
 <MudStack Spacing="3">
     <MudTextField @bind-Value="name" Label="Name" />
@@ -12,10 +13,10 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center">
         <MudAutocomplete T="string"
-                        Label="Search Ingredient"
-                        @bind-Value="selectedIngredient"
-                        SearchFunc="SearchIngredient"
-                        CoerceValue="true" />
+            Label="Search Ingredient"
+            @bind-Value="selectedIngredient"
+            SearchFunc="SearchIngredient"
+            CoerceValue="true" />
         <MudButton Variant="Variant.Outlined" OnClick="AddIngredient">Add</MudButton>
     </MudStack>
 @if (rowingredients.Count > 0)
@@ -52,6 +53,8 @@
 </MudStack>
 
 @code {
+    [Parameter]
+    public int? Id {get; set;}
     private string name = "";
     private int portions = 2;
     private string? instructions;
@@ -61,6 +64,25 @@
     protected override async Task OnInitializedAsync()
     {
         ingredients = await Http.GetFromJsonAsync<List<Ingredient>>("api/ingredients");
+        if(Id != null)
+        {
+            var recipe = await Http.GetFromJsonAsync<RecipeDetailTransfer>($"api/recipes/{Id}");
+            if(recipe != null)
+            {
+                name = recipe.Name;
+                portions = recipe.Portions;
+                instructions = recipe.Instructions;
+                rowingredients = recipe.Ingredients
+                    .Select(i => new RecipeIngredientRow
+                    {
+                        Name = i.Name,
+                        Amount = i.Amount,
+                        Unit = i.Unit,
+                        IsNew = false
+                    })
+                    .ToList();
+            }
+        }
     }
 
     private Task<IEnumerable<string>> SearchIngredient(string text, CancellationToken token)
@@ -117,13 +139,31 @@
             ));
         }
         var request = new CreateRecipeRequest(name, portions, instructions, requestIngredients);
-        var response = await Http.PostAsJsonAsync("api/recipes", request);
+        
+        HttpResponseMessage response;
+        if (Id == null)
+        {
+            response = await Http.PostAsJsonAsync("api/recipes", request);
+        }
+        else
+        {
+            response = await Http.PutAsJsonAsync($"api/recipes/{Id}", request);
+        }
+
         if (response.IsSuccessStatusCode)
         {
-            Navigation.NavigateTo("recipes");
+            if (Id == null)
+            {
+                Navigation.NavigateTo("recipes");
+            }
+            else
+            {
+                Navigation.NavigateTo($"recipes/{Id}");
+            }
         } else
         {
-            Snackbar.Add("Recipe couldn't be saved.", Severity.Error);
+            var message = await response.Content.ReadAsStringAsync();
+            Snackbar.Add(message, Severity.Error);
         }
     }
 }

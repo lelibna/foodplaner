@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 [ApiController]
 [Route("api/recipes")]
@@ -40,33 +39,18 @@ public class RecipesController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddRecipe(CreateRecipeRequest request)
     {
+        var error = CheckRecipe(request);
+        if(error != null)
+        {
+            return BadRequest(error);
+        }
         Recipe recipe = new Recipe
         {
             Name = request.Name,
             Portions = request.Portions,
             Instructions = request.Instructions
         };
-        if (!recipe.IsValid())
-        {
-            return BadRequest("Invalid Input.");
-        }
         var ingredients = request.ingredients ?? [];
-
-        //Check request
-
-        foreach (var item in ingredients)
-        {
-            if(string.IsNullOrWhiteSpace(item.Name) || item.Amount <= 0)
-            {
-                return BadRequest("Invalid Input.");
-            }
-        }
-
-        var names = ingredients.Select(i => i.Name.Trim().ToLower()).ToList();
-        if(names.Count != names.Distinct().Count())
-        {
-            return BadRequest("Ingredient appears multiple times.");
-        }
 
         //Check Request in DB
         foreach(var item in ingredients)
@@ -108,26 +92,66 @@ public class RecipesController(AppDbContext db) : ControllerBase
         }
     }
     [HttpPut("{id}")]
-    public async Task<IActionResult> ChangeRecipe(int id, Recipe recipe)
+    public async Task<IActionResult> ChangeRecipe(int id, CreateRecipeRequest request)
     {
-        if (!recipe.IsValid())
+        var error = CheckRecipe(request);
+        if(error != null)
         {
-            return BadRequest("Invalid Input.");
+            return BadRequest(error);
         }
-        Recipe? recipeToChange = await db.Recipes.FindAsync(id);
-        if (recipeToChange != null)
-        {
-            recipeToChange.Name = recipe.Name;
-            recipeToChange.Instructions = recipe.Instructions;
-            recipeToChange.Portions = recipe.Portions;
-            await db.SaveChangesAsync();
-            return Ok(recipeToChange);
-        }
-        else
+        var ingredients = request.ingredients ?? [];
+        var names = ingredients.Select(i => i.Name.Trim().ToLower()).ToList();
+
+        //Load Recipe with Ingredients
+        Recipe? recipeToChange = await db.Recipes
+            .Include(r => r.RecipeIngredients)
+            .ThenInclude(ri => ri.Ingredient)
+            .FirstOrDefaultAsync(r => r.Id == id);
+        
+        if(recipeToChange == null)
         {
             return NotFound();
         }
+        recipeToChange.Name = request.Name;
+        recipeToChange.Portions = request.Portions;
+        recipeToChange.Instructions = request.Instructions;
+
+        //Remove Ingredients
+        var toRemove = recipeToChange.RecipeIngredients
+            .Where(ri => !names.Contains(ri.Ingredient.Name.ToLower()))
+            .ToList();
+
+        foreach(var ri in toRemove)
+        {
+            db.RecipeIngredients.Remove(ri);
+        }
+        //Change Amounts and add new Ingredients
+        foreach(var item in ingredients)
+        {
+            var name = item.Name.Trim();
+            var existingRow = recipeToChange.RecipeIngredients
+                .FirstOrDefault(ri => ri.Ingredient.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if(existingRow != null)
+            {
+                existingRow.Amount = item.Amount;
+                continue;
+            }
+
+            var ingredient = await FindOrCreateIngredient(name, item.unit);
+            if(ingredient == null)
+            {
+                return BadRequest("Unit is missing.");
+            }
+            recipeToChange.RecipeIngredients.Add(new RecipeIngredient
+            {
+                Ingredient = ingredient,
+                Amount = item.Amount
+            });
+        }
+        await db.SaveChangesAsync();
+        return NoContent();
     }
+
     [HttpPost("{recipeId}/ingredients")]
     public async Task<IActionResult> AddRecipeIngredient(int recipeId, AddRecipeIngredient recipeIngredient)
     {
@@ -157,5 +181,49 @@ public class RecipesController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
         return NoContent();
 
+    }
+    private async Task<Ingredient> FindOrCreateIngredient(string name, Unit? unit)
+    {
+        var ingredient = await db.Ingredients.FirstOrDefaultAsync(i => i.Name.ToLower() == name.ToLower());
+        if(ingredient != null)
+        {
+            return ingredient;
+        }
+        if(unit == null)
+        {
+            return null;
+        }
+        return new Ingredient {Name = name, IngredientUnit = unit.Value};
+    }
+
+    private string? CheckRecipe(CreateRecipeRequest request)
+    {
+        var recipe = new Recipe
+        {
+            Name = request.Name,
+            Portions = request.Portions,
+            Instructions = request.Instructions
+        };
+        if (!recipe.IsValid())
+        {
+            return "Invalid input.";
+        }
+
+        var ingredients = request.ingredients ?? [];
+
+        foreach (var item in ingredients)
+        {
+            if(string.IsNullOrWhiteSpace(item.Name) || item.Amount <= 0)
+            {
+                return "Invalid input";
+            }
+        }
+
+        var names = ingredients.Select(i => i.Name.Trim().ToLower()).ToList();
+        if(names.Count != names.Distinct().Count())
+        {
+            return "Ingredient appears multiple times.";
+        }
+        return null;
     }
 }
