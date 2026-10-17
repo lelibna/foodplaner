@@ -1,0 +1,63 @@
+@page "/weeklyplans/{Start}"
+@using System.Globalization
+@inject HttpClient Http
+
+<MudText Typo="Typo.h4" Class="mb-4">Weekly Plan</MudText>
+
+@if (invalidDate)
+{
+    <MudAlert Severity="Severity.Error">Invalid date.</MudAlert>
+}
+else if (weeklyplan is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudStack Spacing="1" Row="true">
+        @for (int i = 0; i < 7; i++)
+        {
+            var day = startDate.AddDays(i);
+            <MudPaper Class="pa-2" Style="flex: 1 1 0; min-width: 50px; min-height: 50px;">
+                <MudText Typo="Typo.overline">@day.DayOfWeek | @day.ToString("dd.MM.", CultureInfo.InvariantCulture)</MudText>
+                @foreach (var mealtime in Enum.GetValues<Mealtime>())
+                {
+                    var meals = weeklyplan.PlanEntries
+                        .Where(pe => pe.Date == day && pe.Mealtime == mealtime)
+                        .ToList();
+                    <MudText Typo="Typo.body2">@mealtime</MudText>
+                    @if(meals.Count == 0)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" />  
+                    }
+                    else
+                    {
+                        foreach(var meal in meals)
+                        {
+                            <MudText Typo="Typo.body1" Align="Align.Center">@meal.RecipeName</MudText>
+                        }
+                    }
+                }
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter]
+    public string Start {get; set;} = "";
+    private DateOnly startDate;
+    private bool invalidDate;
+    private WeeklyPlanTransfer? weeklyplan;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        weeklyplan = null;
+        invalidDate = !DateOnly.TryParseExact(Start, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate);
+        if(invalidDate){
+            return;
+        }
+        var url = $"api/weeklyplans/{startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+        weeklyplan = await Http.GetFromJsonAsync<WeeklyPlanTransfer>(url);
+    }
+}
