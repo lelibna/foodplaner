@@ -182,7 +182,7 @@ public class RecipesController(AppDbContext db) : ControllerBase
         return NoContent();
 
     }
-    private async Task<Ingredient> FindOrCreateIngredient(string name, Unit? unit)
+    private async Task<Ingredient?> FindOrCreateIngredient(string name, Unit? unit)
     {
         var ingredient = await db.Ingredients.FirstOrDefaultAsync(i => i.Name.ToLower() == name.ToLower());
         if(ingredient != null)

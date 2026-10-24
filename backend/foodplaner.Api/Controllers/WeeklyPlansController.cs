@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 [ApiController]
 [Route("api/weeklyplans")]

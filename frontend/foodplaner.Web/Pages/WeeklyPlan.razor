@@ -1,6 +1,8 @@
 @page "/weeklyplans/{Start}"
 @using System.Globalization
+@using System.Net
 @inject HttpClient Http
+@inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h4" Class="mb-4">Weekly Plan</MudText>
 
@@ -28,7 +30,7 @@ else
                     <MudText Typo="Typo.body2">@mealtime</MudText>
                     @if(meals.Count == 0)
                     {
-                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" />  
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" OnClick="() => AddPopup(day, mealtime)" />  
                     }
                     else
                     {
@@ -41,6 +43,29 @@ else
             </MudPaper>
         }
     </MudStack>
+    <MudDialog @bind-Visible="_open" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                @selectedDate.DayOfWeek @selectedDate.ToString("dd.MM.", CultureInfo.InvariantCulture) – @selectedMealtime
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudAutocomplete T="Recipe"
+                            Style="flex： 1;"
+                            Label="Search recipes"
+                            @bind-Value="selectedRecipe"
+                            SearchFunc="SearchRecipe"
+                            ToStringFunc="@(r => r?.Name ?? string.Empty)"/>
+            <MudNumericField @bind-Value="selectedPortions" Label="Portions" Variant="Variant.Outlined" Min="1" Max="10" Style="width: 90px"/>            
+        </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="ToggleOpen">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddRecipe">Add</MudButton>
+        </DialogActions>
+    </MudDialog>        
+
 }
 
 @code {
@@ -48,16 +73,86 @@ else
     public string Start {get; set;} = "";
     private DateOnly startDate;
     private bool invalidDate;
+    private List<Recipe>? recipes;
     private WeeklyPlanTransfer? weeklyplan;
 
+    private Recipe? selectedRecipe;
+
+    private bool _open;
+
+    private void ToggleOpen() => _open = !_open;
+
+    private DateOnly selectedDate;
+    private Mealtime selectedMealtime;
+    private int selectedPortions;
+    private string weekUrl => $"api/weeklyplans/{startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        recipes = await Http.GetFromJsonAsync<List<Recipe>>("api/recipes");
+    }
     protected override async Task OnParametersSetAsync()
     {
         weeklyplan = null;
         invalidDate = !DateOnly.TryParseExact(Start, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate);
-        if(invalidDate){
+        if (invalidDate)
+        {
             return;
         }
-        var url = $"api/weeklyplans/{startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
-        weeklyplan = await Http.GetFromJsonAsync<WeeklyPlanTransfer>(url);
+        await LoadWeek();
+    }
+    private async Task LoadWeek()
+    {
+        weeklyplan = await Http.GetFromJsonAsync<WeeklyPlanTransfer>(weekUrl);
+    }
+
+    private readonly DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    private Task<IEnumerable<Recipe>> SearchRecipe(string text, CancellationToken token)
+    {
+        if(recipes == null)
+        {
+            return Task.FromResult<IEnumerable<Recipe>>([]);
+        }
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Task.FromResult<IEnumerable<Recipe>>(recipes);
+        }
+        var matches = recipes
+            .Where(i => i.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(matches);
+    }
+
+    private async Task AddRecipe()
+    {
+        if(selectedRecipe == null)
+        {
+            return;
+        }
+        var request = new CreatePlanEntryRequest(selectedDate, selectedMealtime, selectedRecipe.Id, selectedPortions);
+        var response = await Http.PostAsJsonAsync($"{weekUrl}/entries", request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync();
+            Snackbar.Add(message, Severity.Error);
+            return;
+        }
+        _open = false;
+        Snackbar.Add($"{selectedRecipe.Name} added.", Severity.Success);
+        await LoadWeek();
+    }
+
+    private void AddPopup(DateOnly date, Mealtime mealtime)
+    {
+        selectedDate = date;
+        selectedMealtime = mealtime;
+        selectedRecipe = null;
+        selectedPortions = 2;
+        _open = true;
     }
 }
