@@ -1,68 +1,31 @@
 @page "/recipes/{Id:int}"
-
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-@if (recipe == null)
-{
-    <MudProgressCircular Indeterminate="true"/>    
-}
-else
-{
-    <MudText Typo="Typo.h4">@recipe.Name</MudText>
-    <MudText>Portionen: @recipe.Portions</MudText>
+<RecipeView Id="@Id"/>
 
-    @if (!string.IsNullOrWhiteSpace(recipe.Instructions))
-    {
-        <MudText Typo="Typo.h6" Class="mt-4">Instructions</MudText>
-        <MudText>@recipe.Instructions</MudText>
-    }
+<MudButton Variant="Variant.Outlined"
+    Color="Color.Error"
+    StartIcon="@Icons.Material.Filled.Delete"
+    Class="mt-4"
+    OnClick="DeleteRecipe"> Delete
+</MudButton>
 
-    <MudText Typo="Typo.h6" Class="mt-4">Ingredients</MudText>
-    <MudSimpleTable>
-        <thead>
-            <tr><th>Ingredient</th><th>Amount</th><th>Unit</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var ingredient in recipe.Ingredients)
-            {
-                <tr>
-                    <td>@ingredient.Name</td>
-                    <td>@ingredient.Amount</td>
-                    <td>@ingredient.Unit</td>
-                </tr>
-            }
-        </tbody>
-    </MudSimpleTable>
-    <MudButton Variant="Variant.Outlined"
-        Color="Color.Error"
-        StartIcon="@Icons.Material.Filled.Delete"
-        Class="mt-4"
-        OnClick="DeleteRecipe"> Delete
-    </MudButton>
-
-    <MudButton Variant="Variant.Outlined"
-        Color="Color.Primary"
-        StartIcon="@Icons.Material.Filled.Edit"
-        Class="mt-4 ml-2"
-        Href="@($"recipes/{recipe.Id}/edit")"> Edit
-    </MudButton>
-}
+<MudButton Variant="Variant.Outlined"
+    Color="Color.Primary"
+    StartIcon="@Icons.Material.Filled.Edit"
+    Class="mt-4 ml-2"
+    Href="@($"recipes/{Id}/edit")"> Edit
+</MudButton>
 
 @code {
     [Parameter]
     public int Id {get; set;}
-    private RecipeDetailTransfer? recipe;
-    protected override async Task OnInitializedAsync()
-    {
-        recipe = await Http.GetFromJsonAsync<RecipeDetailTransfer>($"api/recipes/{Id}");
-    }
-
     private async Task DeleteRecipe()
     {
-        bool? delete = await DialogService.ShowMessageBoxAsync("Delete this recipe?", $"\"{recipe?.Name}\" will be deleted.", "Delete", null, "Cancel");
+        bool? delete = await DialogService.ShowMessageBoxAsync("Delete this recipe?", "This recipe will be deleted.", "Delete", null, "Cancel");
         if (delete != true)
         {
             return;
