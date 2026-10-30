@@ -1,6 +1,7 @@
 @page "/weeklyplans/{Start?}"
 @using System.Globalization
 @inject HttpClient Http
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -51,6 +52,7 @@ else
             </MudPaper>
         }
     </MudStack>
+
     <MudDialog @bind-Visible="_open" Options="dialogOptions">
         <TitleContent>
             <MudText Typo="Typo.h6">
@@ -73,6 +75,7 @@ else
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddRecipe">Add</MudButton>
         </DialogActions>
     </MudDialog>
+
     <MudDialog @bind-Visible="_recipe" Options="dialogOptions">
         <DialogContent>
             @if (currentmeal != null)
@@ -81,7 +84,22 @@ else
             }
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="ToggleRecipeView">Cancel</MudButton>
+            <MudButton Variant="Variant.Outlined"
+                Color="Color.Primary"
+                StartIcon="@Icons.Material.Filled.Edit"
+                Class="mt-4 ml-2"
+                Href="@($"recipes/{currentmeal?.RecipeId}/edit")"> Edit recipe
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                Color="Color.Error"
+                StartIcon="@Icons.Material.Filled.Delete"
+                Class="mt-4 ml-2"
+                OnClick="DeletePlanEntry">Delete entry
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                Color="Color.Default"
+                Class="mt-4 ml-2"
+                OnClick="ToggleRecipeView">Cancel</MudButton>
         </DialogActions>
     </MudDialog>       
 
@@ -177,7 +195,27 @@ else
         Snackbar.Add($"{selectedRecipe.Name} added.", Severity.Success);
         await LoadWeek();
     }
-
+    private async Task DeletePlanEntry()
+    {
+        if(currentmeal == null)
+        {
+            return;
+        }
+        bool? delete = await DialogService.ShowMessageBoxAsync("Delete this entry?", "This entry will be deleted.", "Delete", null, "Cancel");
+        if(delete != true)
+        {
+            return;
+        }
+        var respone = await Http.DeleteAsync($"{weekUrl}/entries/{currentmeal.Id}");
+        if (!respone.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Entry couldn't be deleted.", Severity.Error);
+            return;
+        }
+        _recipe = false;
+        Snackbar.Add("Entry deleted.", Severity.Success);
+        await LoadWeek();
+    }
     private void ShowEntry(PlanEntryTransfer meal)
     {
         currentmeal = meal;
