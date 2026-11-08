@@ -36,22 +36,41 @@ else
                     var meals = weeklyplan.PlanEntries
                         .Where(pe => pe.Date == day && pe.Mealtime == mealtime)
                         .ToList();
-                    <MudText Typo="Typo.body2">@mealtime</MudText>
-                    @if(meals.Count == 0)
+                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">@mealtime</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" OnClick="() => ShowAddPopup(day, mealtime)" />
+                    </MudStack>
+                    foreach(var meal in meals)
                     {
-                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" OnClick="() => AddPopup(day, mealtime)" />  
-                    }
-                    else
-                    {
-                        foreach(var meal in meals)
-                        {
-                            <MudButton Variant="Variant.Text" OnClick="() => ShowEntry(meal)">@meal.RecipeName</MudButton>
-                        }
+                        <MudButton Color="@(meal.Id == selectedEntry?.Id ? Color.Primary : Color.Default)" Variant="Variant.Text" OnClick="() => SelectEntry(meal)">@meal.RecipeName</MudButton>
                     }
                 }
             </MudPaper>
         }
     </MudStack>
+    @if (selectedEntry != null)
+    {
+        <div class="mt-6">
+            <RecipeView Id="@selectedEntry.RecipeId"/>            
+        </div>
+        <MudPaper Class="pa-4 mt-4">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                    Color="Color.Primary"
+                    StartIcon="@Icons.Material.Filled.Edit"
+                    Href="@($"recipes/{selectedEntry.RecipeId}/edit")"> Edit recipe
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                    Color="Color.Error"
+                    StartIcon="@Icons.Material.Filled.Delete"
+                    OnClick="DeletePlanEntry">Delete entry
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                    Color="Color.Default"
+                    OnClick="() => selectedEntry = null">Cancel</MudButton>                 
+            </MudStack>
+        </MudPaper>
+    }
 
     <MudDialog @bind-Visible="_open" Options="dialogOptions">
         <TitleContent>
@@ -75,34 +94,6 @@ else
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddRecipe">Add</MudButton>
         </DialogActions>
     </MudDialog>
-
-    <MudDialog @bind-Visible="_recipe" Options="dialogOptions">
-        <DialogContent>
-            @if (currentmeal != null)
-            {
-                <RecipeView Id="@currentmeal.RecipeId" />
-            }
-        </DialogContent>
-        <DialogActions>
-            <MudButton Variant="Variant.Outlined"
-                Color="Color.Primary"
-                StartIcon="@Icons.Material.Filled.Edit"
-                Class="mt-4 ml-2"
-                Href="@($"recipes/{currentmeal?.RecipeId}/edit")"> Edit recipe
-            </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                Color="Color.Error"
-                StartIcon="@Icons.Material.Filled.Delete"
-                Class="mt-4 ml-2"
-                OnClick="DeletePlanEntry">Delete entry
-            </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                Color="Color.Default"
-                Class="mt-4 ml-2"
-                OnClick="ToggleRecipeView">Cancel</MudButton>
-        </DialogActions>
-    </MudDialog>       
-
 }
 
 @code {
@@ -113,14 +104,12 @@ else
     private List<Recipe>? recipes;
     private WeeklyPlanTransfer? weeklyplan;
     private bool _open;
-    private bool _recipe;
     private void ToggleOpen() => _open = !_open;
-    private void ToggleRecipeView() => _recipe = !_recipe;
     private Recipe? selectedRecipe;
     private DateOnly selectedDate;
     private Mealtime selectedMealtime;
     private int selectedPortions;
-    private PlanEntryTransfer? currentmeal;
+    private PlanEntryTransfer? selectedEntry;
     private string weekUrl => $"api/weeklyplans/{startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
     private string WeekLink(int weeks) => $"/weeklyplans/{startDate.AddDays(7 * weeks).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
 
@@ -131,6 +120,7 @@ else
     protected override async Task OnParametersSetAsync()
     {
         weeklyplan = null;
+        selectedEntry = null;
         DateOnly date;
         if (string.IsNullOrEmpty(Start))
         {
@@ -197,7 +187,7 @@ else
     }
     private async Task DeletePlanEntry()
     {
-        if(currentmeal == null)
+        if(selectedEntry == null)
         {
             return;
         }
@@ -206,24 +196,27 @@ else
         {
             return;
         }
-        var respone = await Http.DeleteAsync($"{weekUrl}/entries/{currentmeal.Id}");
+        var respone = await Http.DeleteAsync($"{weekUrl}/entries/{selectedEntry.Id}");
         if (!respone.IsSuccessStatusCode)
         {
             Snackbar.Add("Entry couldn't be deleted.", Severity.Error);
             return;
         }
-        _recipe = false;
+        selectedEntry = null;
         Snackbar.Add("Entry deleted.", Severity.Success);
         await LoadWeek();
     }
-    private void ShowEntry(PlanEntryTransfer meal)
+
+    private void SelectEntry(PlanEntryTransfer meal)
     {
-        currentmeal = meal;
-        _recipe = true;
-
+        if(selectedEntry?.Id != meal.Id)
+        {
+            selectedEntry = meal;
+            return;         
+        }
+        selectedEntry = null;
     }
-
-    private void AddPopup(DateOnly date, Mealtime mealtime)
+    private void ShowAddPopup(DateOnly date, Mealtime mealtime)
     {
         selectedDate = date;
         selectedMealtime = mealtime;
