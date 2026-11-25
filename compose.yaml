@@ -7,9 +7,34 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       TZ: ${TZ}
     ports:
-    - 5432:5432
+    - 127.0.0.1:5432:5432
     volumes:
       - dbdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: backend/foodplaner.Api/Dockerfile
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      TZ: ${TZ}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: frontend/foodplaner.Web/Dockerfile
+    ports:
+    - 80:80
+    depends_on:
+      - api
     restart: unless-stopped
 volumes:
   dbdata:
