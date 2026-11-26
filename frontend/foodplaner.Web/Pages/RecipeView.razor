@@ -2,35 +2,47 @@
 
 @if (recipe == null)
 {
-    <MudProgressCircular Indeterminate="true"/>    
+    <MudProgressCircular Indeterminate="true" />
 }
 else
 {
     <MudText Typo="Typo.h4">@recipe.Name</MudText>
-    <MudText>Portionen: @recipe.Portions</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Portions: @recipe.Portions</MudText>
 
-    @if (!string.IsNullOrWhiteSpace(recipe.Instructions))
-    {
-        <MudText Typo="Typo.h6" Class="mt-4">Instructions</MudText>
-        <MudText>@recipe.Instructions</MudText>
-    }
+    <div class="recipe-layout">
+        <section class="recipe-ingredients">
+            <MudText Typo="Typo.h6" Class="mb-2">Ingredients</MudText>
+            <MudSimpleTable Dense="true">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ingredient in recipe.Ingredients)
+                    {
+                        <tr>
+                            <td>@ingredient.Name</td>
+                            <td style="text-align: right;">@ingredient.Amount @ingredient.Unit</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </section>
 
-    <MudText Typo="Typo.h6" Class="mt-4">Ingredients</MudText>
-    <MudSimpleTable>
-        <thead>
-            <tr><th>Ingredient</th><th>Amount</th><th>Unit</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var ingredient in recipe.Ingredients)
+        <section class="recipe-instructions">
+            <MudText Typo="Typo.h6" Class="mb-2">Instructions</MudText>
+            @if (string.IsNullOrWhiteSpace(recipe.Instructions))
             {
-                <tr>
-                    <td>@ingredient.Name</td>
-                    <td>@ingredient.Amount</td>
-                    <td>@ingredient.Unit</td>
-                </tr>
+                <MudText Class="mud-text-secondary">No instructions yet.</MudText>
             }
-        </tbody>
-    </MudSimpleTable>
+            else
+            {
+                <MudText Class="recipe-instructions-text">@recipe.Instructions</MudText>
+            }
+        </section>
+    </div>
 }
 
 @code {

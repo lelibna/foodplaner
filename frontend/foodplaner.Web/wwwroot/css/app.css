@@ -114,3 +114,209 @@ code {
     bottom: 24px;
     right: 24px;
 }
+
+.week-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.week-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.plan-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plan-labels {
+    display: none;
+}
+
+.plan-day {
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.plan-day-today {
+    border-color: var(--mud-palette-primary);
+}
+
+.plan-day-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.plan-weekday {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mud-palette-text-secondary);
+}
+
+.plan-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 50%;
+}
+
+.plan-day-today .plan-date {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.plan-slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 48px;
+    padding: 8px 40px 8px 12px;
+}
+
+.plan-slot + .plan-slot {
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.plan-slot-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mud-palette-text-secondary);
+}
+
+.plan-entry {
+    padding: 4px 8px;
+    border-left: 3px solid var(--mud-palette-primary);
+    border-radius: 4px;
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.plan-entry-selected {
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.plan-add {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    opacity: 0.5;
+}
+
+@media (hover: hover) {
+    .plan-add {
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+
+    .plan-slot:hover .plan-add {
+        opacity: 0.6;
+    }
+}
+
+@media (min-width: 1500px) {
+    .plan-grid {
+        display: grid;
+        grid-template-columns: 90px repeat(7, minmax(0, 1fr));
+        grid-template-rows: auto repeat(var(--meals), minmax(90px, auto));
+        gap: 0;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .plan-labels,
+    .plan-day {
+        display: grid;
+        grid-row: 1 / -1;
+        grid-template-rows: subgrid;
+    }
+
+    .plan-labels {
+        background: var(--mud-palette-background-gray);
+    }
+
+    .plan-day {
+        border: none;
+        border-radius: 0;
+        border-left: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .plan-day-today {
+        background: var(--mud-palette-action-default-hover);
+    }
+
+    .plan-corner {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .plan-label {
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .plan-label + .plan-label {
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .plan-day-header {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .plan-slot-label {
+        display: none;
+    }
+}
+
+.recipe-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+.recipe-instructions-text {
+    white-space: pre-line;
+}
+
+@media (min-width: 960px) {
+    .recipe-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        align-items: start;
+        gap: 32px;
+    }
+
+    .recipe-ingredients {
+        order: 2;
+    }
+}

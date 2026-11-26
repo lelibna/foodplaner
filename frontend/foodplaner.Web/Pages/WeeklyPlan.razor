@@ -5,15 +5,17 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+<div class="week-header">
     <MudText Typo="Typo.h4" Class="mb-4">Weekly Plan</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Href="@WeekLink(-1)" />
-    <MudText Typo="Typo.subtitle1">
-        @startDate.ToString("dd.MM.", CultureInfo.InvariantCulture) – @startDate.AddDays(6).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
-    </MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Href="@WeekLink(1)" />
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Href="@WeekLink(-1)" />
+        <MudText Typo="Typo.subtitle1">
+            @startDate.ToString("dd.MM.", CultureInfo.InvariantCulture) – @startDate.AddDays(6).ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
+        </MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Href="@WeekLink(1)" />
     <MudButton Variant="Variant.Text" Href="/weeklyplans">Today</MudButton>
-</MudStack>
+    </MudStack>
+</div>
 
 @if (invalidDate)
 {
@@ -25,29 +27,43 @@ else if (weeklyplan is null)
 }
 else
 {
-    <MudStack Spacing="1" Row="true">
+    <div class="plan-grid" style="--meals: @mealtimes.Length">
+        <div class="plan-labels">
+            <div class="plan-corner"></div>
+            @foreach (var mealtime in mealtimes)
+            {
+                <div class="plan-label">@mealtime</div>
+            }
+        </div>
+
         @for (int i = 0; i < 7; i++)
         {
             var day = startDate.AddDays(i);
-            <MudPaper Class="pa-2" Style="flex: 1 1 0; min-width: 50px; min-height: 50px;">
-                <MudText Typo="Typo.overline">@day.DayOfWeek | @day.ToString("dd.MM.", CultureInfo.InvariantCulture)</MudText>
-                @foreach (var mealtime in Enum.GetValues<Mealtime>())
+            <div class="@(day == today ? "plan-day plan-day-today" : "plan-day")">
+                <div class="plan-day-header">
+                    <span class="plan-weekday">@day.ToString("ddd", CultureInfo.InvariantCulture)</span>
+                    <span class="plan-date">@day.Day</span>
+                </div>
+
+                @foreach (var mealtime in mealtimes)
                 {
                     var meals = weeklyplan.PlanEntries
                         .Where(pe => pe.Date == day && pe.Mealtime == mealtime)
                         .ToList();
-                    <MudStack Row="true" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">@mealtime</MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Style="opacity: 0.4;" OnClick="() => ShowAddPopup(day, mealtime)" />
-                    </MudStack>
-                    foreach(var meal in meals)
-                    {
-                        <MudButton Color="@(meal.Id == selectedEntry?.Id ? Color.Primary : Color.Default)" Variant="Variant.Text" OnClick="() => SelectEntry(meal)">@meal.RecipeName</MudButton>
-                    }
+                    <div class="plan-slot">
+                        <span class="plan-slot-label">@mealtime</span>
+                        @foreach (var meal in meals)
+                        {
+                            <div class="@(meal.Id == selectedEntry?.Id ? "plan-entry plan-entry-selected" : "plan-entry")"@onclick="() => SelectEntry(meal)">
+                                @meal.RecipeName
+                            </div>
+                        }
+                        <MudIconButton Class="plan-add" Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="() => ShowAddPopup(day, mealtime)" />
+                    </div>
                 }
-            </MudPaper>
+            </div>
         }
-    </MudStack>
+    </div>
     @if (selectedEntry != null)
     {
         <div class="mt-6">
@@ -112,7 +128,8 @@ else
     private PlanEntryTransfer? selectedEntry;
     private string weekUrl => $"api/weeklyplans/{startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
     private string WeekLink(int weeks) => $"/weeklyplans/{startDate.AddDays(7 * weeks).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
-
+    private readonly Mealtime[] mealtimes = Enum.GetValues<Mealtime>();
+    private readonly DateOnly today = DateOnly.FromDateTime(DateTime.Today);
     protected override async Task OnInitializedAsync()
     {
         recipes = await Http.GetFromJsonAsync<List<Recipe>>("api/recipes");
